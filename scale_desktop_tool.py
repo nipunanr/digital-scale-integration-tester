@@ -89,9 +89,9 @@ def start_asyncio_server(loop, log_callback, app):
         await handle_ws_client(websocket, path, log_callback)
     
     try:
-        start_server = websockets.serve(handler, '127.0.0.1', app.bridge_port)
+        start_server = websockets.serve(handler, '0.0.0.0', app.bridge_port)
         app.bridge_server = loop.run_until_complete(start_server)
-        log_callback(f"[Bridge] Running on ws://127.0.0.1:{app.bridge_port}")
+        log_callback(f"[Bridge] Running on ws://0.0.0.0:{app.bridge_port}")
         loop.run_forever()
     except Exception as e:
         log_callback(f"[Bridge] Server error: {e}")
@@ -134,10 +134,10 @@ def run_mock_scale(log_callback, app):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     app.mock_server = server
     try:
-        server.bind(('127.0.0.1', app.mock_port))
+        server.bind(('0.0.0.0', app.mock_port))
         server.listen(5)
         server.settimeout(1.0)
-        log_callback(f"[Mock Scale] Listening on 127.0.0.1:{app.mock_port}")
+        log_callback(f"[Mock Scale] Listening on 0.0.0.0:{app.mock_port}")
         
         while app.mock_running:
             try:
@@ -325,13 +325,13 @@ Welcome to the Digital Scale Integration Tester! This tool acts as a swiss-army 
 1. 🌐 Browser WebSocket Bridge
 Most modern web browsers block direct TCP connections. If you have a web application that needs to read live weight data from a scale on the local network, you can use this bridge.
 - What it does: It runs a local WebSocket server. When your web app connects to it, the bridge opens a raw TCP connection to the scale and forwards all incoming data seamlessly.
-- How to use: Set the desired WebSocket Port (default 8181) and click 'Start Bridge'. Then, in your web app, connect to ws://127.0.0.1:8181 and send a JSON payload {"action": "connect", "ip": "<SCALE_IP>", "port": <SCALE_PORT>}.
+- How to use: Set the desired WebSocket Port (default 8181) and click 'Start Bridge'. Then, in your web app, connect to ws://<YOUR_IP>:8181 and send a JSON payload {"action": "connect", "ip": "<SCALE_IP>", "port": <SCALE_PORT>}.
 
 2. ⚖️ Mock Scale Simulator
 If you don't have a physical scale hardware available, you can simulate one.
 - What it does: Runs a fake TCP scale server on your computer that generates random, fluctuating weight values exactly like a live scale.
 - Data Pattern: You can customize the exact string format sent by the simulator. Use {weight_str} to inject the formatted weight (e.g., US,GS, {weight_str:>9}kg\\r\\n).
-- How to use: Choose a TCP port and click 'Start Mock Scale'. Any application can now connect to 127.0.0.1:<PORT> via TCP to receive live scale data.
+- How to use: Choose a TCP port and click 'Start Mock Scale'. Any application can now connect to <YOUR_IP>:<PORT> via TCP to receive live scale data.
 
 3. 📡 Scale Data Listener
 Use this tool to connect to a real, physical scale (or the Mock Simulator) to monitor its data stream.
