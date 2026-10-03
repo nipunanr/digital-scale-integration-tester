@@ -8,6 +8,14 @@ import time
 import random
 import json
 import sys
+import os
+
+def get_resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 # ---------------------------------------------------------------------------
 # Asyncio WebSocket Bridge Server
@@ -190,8 +198,13 @@ class ScaleDesktopApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Digital Scale Integration Tester")
-        self.root.geometry("750x550")
+        self.root.geometry("850x650")
         self.root.configure(bg="#f8fafc")
+        
+        try:
+            self.root.iconbitmap(get_resource_path("scale.ico"))
+        except Exception:
+            pass
         
         # Make UI Modern
         style = ttk.Style()
@@ -209,6 +222,10 @@ class ScaleDesktopApp:
         style.configure("Stop.TButton", font=("Segoe UI", 10, "bold"), background="#ef4444", foreground="white", padding=6)
         style.map("Stop.TButton", background=[("active", "#dc2626")])
         
+        style.configure("TNotebook", background="#f8fafc")
+        style.configure("TNotebook.Tab", background="#e2e8f0", padding=[15, 5], font=("Segoe UI", 10, "bold"))
+        style.map("TNotebook.Tab", background=[("selected", "#ffffff")], foreground=[("selected", "#0f172a")])
+        
         # State
         self.bridge_running = False
         self.mock_running = False
@@ -224,11 +241,19 @@ class ScaleDesktopApp:
         # Header
         header = tk.Frame(self.root, bg="#0f172a", pady=15)
         header.pack(fill=tk.X)
-        tk.Label(header, text="Digital Scale Integration Tester", font=("Segoe UI", 16, "bold"), bg="#0f172a", fg="white").pack()
+        tk.Label(header, text="Digital Scale Integration Tester", font=("Segoe UI", 18, "bold"), bg="#0f172a", fg="white").pack()
         tk.Label(header, text="Developed by Nipuna Rangika", font=("Segoe UI", 10), bg="#0f172a", fg="#94a3b8").pack()
         
+        # Notebook for Tabs
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Tab 1: Dashboard
+        tab_dashboard = ttk.Frame(notebook)
+        notebook.add(tab_dashboard, text=" 🎛️ Dashboard ")
+        
         # Controls Frame
-        controls = ttk.Frame(self.root, padding="15")
+        controls = ttk.Frame(tab_dashboard, padding="15")
         controls.pack(fill=tk.X)
         
         # Bridge Controls
@@ -260,7 +285,7 @@ class ScaleDesktopApp:
         self.btn_mock = ttk.Button(mock_frame, text="▶ Start Mock Scale", style="Start.TButton", command=self.toggle_mock)
         self.btn_mock.grid(row=2, column=0, columnspan=2, pady=10, sticky="we")
         
-        controls2 = ttk.Frame(self.root, padding="0 0 15 15")
+        controls2 = ttk.Frame(tab_dashboard, padding="0 15 15 15")
         controls2.pack(fill=tk.X)
         
         listener_frame = ttk.LabelFrame(controls2, text=" 📡 Scale Data Listener ", padding="15")
@@ -280,11 +305,41 @@ class ScaleDesktopApp:
         self.btn_listener.grid(row=0, column=4, padx=20, pady=5)
         
         # Log Area
-        log_frame = ttk.Frame(self.root, padding="15")
+        log_frame = ttk.Frame(tab_dashboard, padding="15 0 15 15")
         log_frame.pack(fill=tk.BOTH, expand=True)
         
         self.log_area = scrolledtext.ScrolledText(log_frame, state='disabled', bg="#1e293b", fg="#34d399", font=("Consolas", 11), borderwidth=0)
         self.log_area.pack(fill=tk.BOTH, expand=True)
+
+        # Tab 2: User Guide
+        tab_guide = ttk.Frame(notebook, padding="20")
+        notebook.add(tab_guide, text=" 📖 User Guide ")
+        
+        guide_text = scrolledtext.ScrolledText(tab_guide, bg="#ffffff", fg="#334155", font=("Segoe UI", 11), borderwidth=0, wrap=tk.WORD)
+        guide_text.pack(fill=tk.BOTH, expand=True)
+        
+        guide_content = """# Digital Scale Integration Tester - User Guide
+
+Welcome to the Digital Scale Integration Tester! This tool acts as a swiss-army knife for developers working with digital scale hardware over TCP connections.
+
+1. 🌐 Browser WebSocket Bridge
+Most modern web browsers block direct TCP connections. If you have a web application that needs to read live weight data from a scale on the local network, you can use this bridge.
+- What it does: It runs a local WebSocket server. When your web app connects to it, the bridge opens a raw TCP connection to the scale and forwards all incoming data seamlessly.
+- How to use: Set the desired WebSocket Port (default 8181) and click 'Start Bridge'. Then, in your web app, connect to ws://127.0.0.1:8181 and send a JSON payload {"action": "connect", "ip": "<SCALE_IP>", "port": <SCALE_PORT>}.
+
+2. ⚖️ Mock Scale Simulator
+If you don't have a physical scale hardware available, you can simulate one.
+- What it does: Runs a fake TCP scale server on your computer that generates random, fluctuating weight values exactly like a live scale.
+- Data Pattern: You can customize the exact string format sent by the simulator. Use {weight_str} to inject the formatted weight (e.g., US,GS, {weight_str:>9}kg\\r\\n).
+- How to use: Choose a TCP port and click 'Start Mock Scale'. Any application can now connect to 127.0.0.1:<PORT> via TCP to receive live scale data.
+
+3. 📡 Scale Data Listener
+Use this tool to connect to a real, physical scale (or the Mock Simulator) to monitor its data stream.
+- What it does: Connects to any IP and Port via TCP and streams all incoming data directly into the application log.
+- How to use: Enter the IP address and Port of the target scale and click 'Start Listener'. If the scale is sending continuous data, you will see it immediately in the log area.
+"""
+        guide_text.insert(tk.END, guide_content.strip())
+        guide_text.config(state='disabled')
         
     def toggle_bridge(self):
         if not self.bridge_running:
