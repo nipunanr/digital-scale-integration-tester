@@ -202,9 +202,12 @@ class ScaleDesktopApp:
         self.root.configure(bg="#f8fafc")
         
         try:
-            self.root.iconbitmap(get_resource_path("scale.ico"))
-        except Exception:
-            pass
+            icon_path = get_resource_path("scale.ico")
+            self.root.iconbitmap(default=icon_path)
+            self.root.iconbitmap(icon_path)
+        except Exception as e:
+            import tkinter.messagebox as mb
+            mb.showerror("Icon Error", f"Failed to load icon:\n{e}")
         
         # Make UI Modern
         style = ttk.Style()
@@ -412,6 +415,13 @@ Use this tool to connect to a real, physical scale (or the Mock Simulator) to mo
         sys.exit(0)
 
 if __name__ == "__main__":
+    try:
+        import ctypes
+        myappid = 'nipun.scale_desktop_tool.1.0'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
+
     root = tk.Tk()
     app = ScaleDesktopApp(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
