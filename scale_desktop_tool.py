@@ -189,7 +189,7 @@ def run_listener(ip, port, log_callback, app):
 class ScaleDesktopApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("SeafoodPro - Scale Bridge Tool")
+        self.root.title("Digital Scale Integration Tester")
         self.root.geometry("750x550")
         self.root.configure(bg="#f8fafc")
         
@@ -225,6 +225,7 @@ class ScaleDesktopApp:
         header = tk.Frame(self.root, bg="#0f172a", pady=15)
         header.pack(fill=tk.X)
         tk.Label(header, text="Digital Scale Integration Tester", font=("Segoe UI", 16, "bold"), bg="#0f172a", fg="white").pack()
+        tk.Label(header, text="Developed by Nipuna Rangika", font=("Segoe UI", 10), bg="#0f172a", fg="#94a3b8").pack()
         
         # Controls Frame
         controls = ttk.Frame(self.root, padding="15")

@@ -1,6 +1,8 @@
-# SeafoodPro - Scale Bridge Tool
+# Digital Scale Integration Tester
 
-A desktop utility designed to help develop, test, and integrate digital scales with web applications. 
+Developed by Nipuna Rangika
+
+A desktop utility designed to help develop, test, and integrate digital scales with web applications.
 
 ## Features
 
