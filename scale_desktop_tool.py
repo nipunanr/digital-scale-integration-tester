@@ -111,7 +111,24 @@ def handle_mock_client(conn, addr, log_callback, app):
         weight = 2000.0
         while app.mock_running:
             weight += random.uniform(-1.5, 1.5)
-            weight_str = f"{weight:,.2f}"
+            
+            decimals = getattr(app, 'mock_decimals', 2)
+            t_sep = getattr(app, 'mock_thousands_sep', ',')
+            d_sep = getattr(app, 'mock_decimal_sep', '.')
+            
+            if t_sep == "Space":
+                t_sep = " "
+            elif t_sep == "None":
+                t_sep = ""
+                
+            format_str = f"{{:,.{decimals}f}}"
+            weight_str = format_str.format(weight)
+            
+            if t_sep != ',' or d_sep != '.':
+                weight_str = weight_str.replace(',', 'X_TEMP_T_X')
+                weight_str = weight_str.replace('.', 'X_TEMP_D_X')
+                weight_str = weight_str.replace('X_TEMP_T_X', t_sep)
+                weight_str = weight_str.replace('X_TEMP_D_X', d_sep)
             
             pattern = getattr(app, 'mock_pattern', "US,GS, {weight_str:>9}kg\\r\\n")
             pattern = pattern.replace('\\r', '\r').replace('\\n', '\n')
@@ -285,8 +302,23 @@ class ScaleDesktopApp:
         self.ent_mock_pattern.insert(0, "US,GS, {weight_str:>9}kg\\r\\n")
         self.ent_mock_pattern.grid(row=1, column=1, sticky="w", padx=10, pady=5)
         
+        ttk.Label(mock_frame, text="Decimals:").grid(row=2, column=0, sticky="w", pady=5)
+        self.ent_mock_decimals = ttk.Spinbox(mock_frame, from_=0, to=5, width=10, font=("Segoe UI", 10))
+        self.ent_mock_decimals.set("2")
+        self.ent_mock_decimals.grid(row=2, column=1, sticky="w", padx=10, pady=5)
+
+        ttk.Label(mock_frame, text="1000s Sep:").grid(row=3, column=0, sticky="w", pady=5)
+        self.cbo_thousands_sep = ttk.Combobox(mock_frame, values=[",", ".", "Space", "None"], width=10, state="readonly")
+        self.cbo_thousands_sep.set(",")
+        self.cbo_thousands_sep.grid(row=3, column=1, sticky="w", padx=10, pady=5)
+
+        ttk.Label(mock_frame, text="Decimal Sep:").grid(row=4, column=0, sticky="w", pady=5)
+        self.cbo_decimal_sep = ttk.Combobox(mock_frame, values=[".", ","], width=10, state="readonly")
+        self.cbo_decimal_sep.set(".")
+        self.cbo_decimal_sep.grid(row=4, column=1, sticky="w", padx=10, pady=5)
+        
         self.btn_mock = ttk.Button(mock_frame, text="▶ Start Mock Scale", style="Start.TButton", command=self.toggle_mock)
-        self.btn_mock.grid(row=2, column=0, columnspan=2, pady=10, sticky="we")
+        self.btn_mock.grid(row=5, column=0, columnspan=2, pady=10, sticky="we")
         
         controls2 = ttk.Frame(tab_dashboard, padding="0 15 15 15")
         controls2.pack(fill=tk.X)
@@ -367,10 +399,21 @@ Use this tool to connect to a real, physical scale (or the Mock Simulator) to mo
         if not self.mock_running:
             self.mock_port = int(self.ent_mock_port.get())
             self.mock_pattern = self.ent_mock_pattern.get()
+            
+            try:
+                self.mock_decimals = int(self.ent_mock_decimals.get())
+            except ValueError:
+                self.mock_decimals = 2
+            self.mock_thousands_sep = self.cbo_thousands_sep.get()
+            self.mock_decimal_sep = self.cbo_decimal_sep.get()
+            
             self.mock_running = True
             self.btn_mock.config(text="⏹ Stop Mock Scale", style="Stop.TButton")
             self.ent_mock_port.config(state="disabled")
             self.ent_mock_pattern.config(state="disabled")
+            self.ent_mock_decimals.config(state="disabled")
+            self.cbo_thousands_sep.config(state="disabled")
+            self.cbo_decimal_sep.config(state="disabled")
             
             self.mock_thread = threading.Thread(target=run_mock_scale, args=(self.log, self))
             self.mock_thread.daemon = True
@@ -380,6 +423,9 @@ Use this tool to connect to a real, physical scale (or the Mock Simulator) to mo
             self.btn_mock.config(text="▶ Start Mock Scale", style="Start.TButton")
             self.ent_mock_port.config(state="normal")
             self.ent_mock_pattern.config(state="normal")
+            self.ent_mock_decimals.config(state="normal")
+            self.cbo_thousands_sep.config(state="readonly")
+            self.cbo_decimal_sep.config(state="readonly")
             self.log("[Mock Scale] Stopped.")
 
     def toggle_listener(self):
