@@ -36,6 +36,6 @@ To build the standalone `.exe` yourself, use PyInstaller:
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --noconsole --icon=scale.ico scale_desktop_tool.py
+pyinstaller --onefile --noconsole --icon=scale.ico --add-data "scale.ico;." scale_desktop_tool.py
 ```
 The output executable will be placed in the `dist/` folder.

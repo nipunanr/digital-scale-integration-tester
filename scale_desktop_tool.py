@@ -21,13 +21,36 @@ def get_resource_path(relative_path):
 # Asyncio WebSocket Bridge Server
 # ---------------------------------------------------------------------------
 async def tcp_to_ws(reader, websocket, log_callback):
+    buffer = ""
     try:
         while True:
             data = await reader.read(4096)
             if not data:
                 break
-            text_data = data.decode('utf-8', errors='replace')
-            await websocket.send(json.dumps({"event": "data", "data": text_data}))
+            
+            chunk = data.decode('utf-8', errors='replace')
+            buffer += chunk
+            
+            # This loop is crucial! It splits the chunk into individual lines 
+            # BEFORE sending them over the WebSocket.
+            while '\n' in buffer or '\r' in buffer:
+                idx_n = buffer.find('\n')
+                idx_r = buffer.find('\r')
+                
+                if idx_n >= 0 and idx_r >= 0:
+                    idx = min(idx_n, idx_r)
+                else:
+                    idx = max(idx_n, idx_r)
+                    
+                line = buffer[:idx].strip()
+                
+                if idx_r >= 0 and idx_n == idx_r + 1:
+                    buffer = buffer[idx+2:]
+                else:
+                    buffer = buffer[idx+1:]
+                
+                if line:
+                    await websocket.send(json.dumps({"event": "data", "data": line}))
     except Exception as e:
         log_callback(f"[Bridge] TCP read error: {e}")
     finally:
@@ -35,6 +58,7 @@ async def tcp_to_ws(reader, websocket, log_callback):
             await websocket.send(json.dumps({"event": "disconnected"}))
         except:
             pass
+
 
 async def handle_ws_client(websocket, path, log_callback):
     log_callback(f"[Bridge] Browser connected from {websocket.remote_address}")
@@ -176,6 +200,7 @@ def run_listener(ip, port, log_callback, app):
         with socket.create_connection((ip, port), timeout=5) as sock:
             log_callback(f"[Listener] Connected to {ip}:{port}")
             sock.settimeout(1.0)
+            buffer = ""
             while app.listener_running:
                 try:
                     data = sock.recv(4096)
@@ -183,11 +208,17 @@ def run_listener(ip, port, log_callback, app):
                         log_callback("[Listener] Server closed connection.")
                         break
                     try:
-                        text = data.decode('utf-8', errors='replace').strip()
+                        chunk = data.decode('utf-8', errors='replace')
                     except:
-                        text = repr(data)
-                    if text:
-                        log_callback(f"[Listener] Data: {text}")
+                        chunk = repr(data)
+                    
+                    buffer += chunk
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        line = line.strip()
+                        if line:
+                            log_callback(f"[Listener] Data: {line}")
+                            
                 except socket.timeout:
                     continue
                 except Exception as e:
